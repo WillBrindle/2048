@@ -33,7 +33,7 @@ class Tile extends Phaser.GameObjects.Container {
         const defaultStyle = {
             fontSize: '32px',
             fontFamily: FONT,
-            fontWeight: 900,
+            fontStyle: 'bold',
             color: '#786e66'
         };
 
@@ -98,10 +98,13 @@ class Grid extends Phaser.GameObjects.Container {
     private size : integer;
     private displaySize : integer;
 
+    // TODO: this doesn't really feel like it belongs here; probably need a refactor
+    private score : integer = 0;
+
     constructor(scene : Phaser.Scene, size : integer) {
         super(scene, 0, 0);
-        this.grid = new Array<Tile>(size * size);
         this.size = size;
+        this.grid = new Array<Tile>(size * size);
 
         // Background
         this.displaySize = TILE_PADDING + (TILE_SIZE + TILE_PADDING) * size;
@@ -170,6 +173,7 @@ class Grid extends Phaser.GameObjects.Container {
                     if (otherTile.getValue() === tile.getValue() && otherTile.canUpgrade() && tile.canUpgrade()) {
                         tile.markUpgrading();
                         otherTile.markUpgrading();
+                        this.score += tile.getValue();
                         tile.depth = 3;
                         otherTile.depth = 2;
                         // Merge the 2
@@ -216,8 +220,65 @@ class Grid extends Phaser.GameObjects.Container {
         return x + this.size * y;
     }
 
+    getScore() {
+        return this.score;
+    }
+
+    reset() {
+        this.grid.filter(tile => !!tile).forEach((tile) => {
+            tile.destroy();
+        });
+
+        this.grid = new Array<Tile>(this.size * this.size);
+        this.score = 0;
+        this.addRandomTile();
+    }
+
     withinBounds(x : integer, y : integer) : boolean {
         return x >= 0 && x < this.size && y >= 0 && y < this.size;
+    }
+}
+
+class ScoreBox extends Phaser.GameObjects.Container {
+    private valueLabel : Phaser.GameObjects.Text;
+    private boxWidth : integer;
+
+    constructor(scene, label, width, height) {
+        super(scene, 0, 0);
+
+        this.boxWidth = width;
+
+        const background = new Phaser.GameObjects.Rectangle(scene, width / 2, height / 2, width, height, 0xbbada0);
+        this.add(background);
+
+        const textLabel : Phaser.GameObjects.Text = new Phaser.GameObjects.Text(scene, 0, 5, label, { fontSize: '16px', fontStyle: 'bold', fontFamily: FONT, color: '#e3d9cf' });
+        textLabel.x = (width - textLabel.displayWidth) / 2;
+        this.add(textLabel);
+
+        this.valueLabel = new Phaser.GameObjects.Text(scene, 0, 22, '0', { fontSize: '32px', fontStyle: 'bold', fontFamily: FONT, color: '#fbf9f6' });
+        this.setValue(0);
+        this.add(this.valueLabel);
+    }
+
+    setValue(value : integer) : void {
+        this.valueLabel.setText(`${value}`);
+        this.valueLabel.x = (this.boxWidth - this.valueLabel.displayWidth) / 2;
+    }
+}
+
+class Button extends Phaser.GameObjects.Container {
+    constructor(scene, label, width, height, callback) {
+        super(scene, 0, 0);
+
+        const rect = new Phaser.GameObjects.Rectangle(scene, width / 2, height / 2, width, height, 0x786e66);
+        this.add(rect);
+
+        const textLabel : Phaser.GameObjects.Text = new Phaser.GameObjects.Text(scene, 0, 0, label, { fontSize: '16px', fontStyle: 'bold', fontFamily: FONT, color: '#e3d9cf' });
+        textLabel.setPosition((width - textLabel.displayWidth) / 2, (height - 16) / 2);
+        this.add(textLabel);
+
+        this.setInteractive(new Phaser.Geom.Rectangle(width / 2, height / 2, width, height), Phaser.Geom.Rectangle.Contains)
+            .on('pointerdown', callback);
     }
 }
 
@@ -226,25 +287,55 @@ export default class TwentyFourtyEight extends Phaser.Scene
     private grid : Grid;
     private moving : boolean = false;
 
+    private scorebox : ScoreBox;
+    private highScorebox : ScoreBox;
+    private highscore : integer = 0;
+
     constructor ()
     {
         super('2048');
     }
 
     preload () {
+        this.highscore = localStorage.getItem('highscore') ? Number.parseInt(localStorage.getItem('highscore')) : 0;
     }
 
     create () {
-        const title = new Phaser.GameObjects.Text(this, 85, 25, '2048', { fontSize: '85px', fontFamily: FONT, color: '#786e66' });
-        this.add.existing(title);
-
         const { width } = this.sys.game.canvas;
 
+        // Create core game objet
         this.grid = new Grid(this, 4);
         this.add.existing(this.grid);
 
-        this.grid.x = (width - this.grid.getDisplaySize()) / 2;
+        const margin = (width - this.grid.getDisplaySize()) / 2;
+        this.grid.x = margin;
         this.grid.y = 200;
+
+        const title = new Phaser.GameObjects.Text(this, margin, 25, '2048', { fontSize: '64px', fontFamily: FONT, fontStyle: 'bold', color: '#786e66' });
+        this.add.existing(title);
+
+        // Hacky combination of normal and bold text; if we had to do anything more complicated then
+        // this should either be refactored or use a plugin.
+        const description1 = new Phaser.GameObjects.Text(this, margin, 108, 'Join the numbers and get to the ', { fontSize: '16px', fontFamily: FONT, color: '#786e66' });
+        this.add.existing(description1);
+        const description2 = new Phaser.GameObjects.Text(this, margin + description1.displayWidth, 108, '2048 tile!', { fontSize: '16px', fontStyle: 'bold', fontFamily: FONT, color: '#786e66' });
+        this.add.existing(description2);
+
+        this.scorebox = new ScoreBox(this, 'SCORE', 120, 60);
+        this.scorebox.setPosition(width - margin - 250, 29);
+        this.add.existing(this.scorebox);
+
+        this.highScorebox = new ScoreBox(this, 'BEST', 120, 60);
+        this.highScorebox.setPosition(width - margin - 120, 29);
+        this.highScorebox.setValue(this.highscore);
+        this.add.existing(this.highScorebox);
+
+        const newGameButton = new Button(this, 'New Game', 150, 30, () => {
+            this.grid.reset();
+            this.scorebox.setValue(this.grid.getScore());
+        });
+        newGameButton.setPosition(width - margin - 150, 100);
+        this.add.existing(newGameButton);
 
         this.grid.addRandomTile();
         this.input.keyboard.on("keydown", this.onKeyPress, this);
@@ -274,6 +365,13 @@ export default class TwentyFourtyEight extends Phaser.Scene
         this.grid.move(dx, dy).then((moved) => {
             this.moving = false;
             if (moved) {
+                const score : integer = this.grid.getScore();
+                this.scorebox.setValue(score);
+                if (score > this.highscore) {
+                    this.highscore = score;
+                    localStorage.setItem('highscore', `${this.highscore}`);
+                    this.highScorebox.setValue(this.highscore);
+                }
                 this.grid.addRandomTile();
             }
         });
