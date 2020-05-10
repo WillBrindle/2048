@@ -143,7 +143,6 @@ class Grid extends Phaser.GameObjects.Container {
 
   move(dx: integer, dy: integer): Promise<boolean> {
     const promises: Promise<void>[] = [];
-    let somethingMoved = false;
 
     for (let i: integer = 0; i < this.size; i += 1) {
       for (let j: integer = 0; j < this.size; j += 1) {
@@ -158,54 +157,64 @@ class Grid extends Phaser.GameObjects.Container {
           continue;
         }
 
-        // Find how far we can move in our direction until either we're outside the bounds of our game area
-        // or we're hitting another time
-        let newXPos: integer = xPos + Math.sign(dx);
-        let newYPos: integer = yPos + Math.sign(dy);
-        while (this.withinBounds(newXPos, newYPos) && !this.grid[this.getGridIndex(newXPos, newYPos)]) {
-          newXPos += Math.sign(dx);
-          newYPos += Math.sign(dy);
-        }
-
-        // If we hit another tile - see if we can upgrade
-        if (this.withinBounds(newXPos, newYPos)) {
-          const otherTile = this.grid[this.getGridIndex(newXPos, newYPos)];
-          if (otherTile.getValue() === tile.getValue() && otherTile.canUpgrade() && tile.canUpgrade()) {
-            tile.markUpgrading();
-            otherTile.markUpgrading();
-            this.score += tile.getValue();
-            tile.depth = 3;
-            otherTile.depth = 2;
-            // Merge the 2
-            const tweenDuration = Math.max(Math.abs(newXPos - xPos), Math.abs(newYPos - yPos)) * TWEEN_SPEED;
-            promises.push(
-              tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration, otherTile),
-            );
-            this.grid[this.getGridIndex(newXPos, newYPos)] = tile;
-            this.grid[this.getGridIndex(xPos, yPos)] = null;
-            somethingMoved = true;
-            continue;
-          }
-        }
-
-        // We couldn't upgrade or we're hitting an edge
-        newXPos -= Math.sign(dx);
-        newYPos -= Math.sign(dy);
-
-        // If we actually moved anywhere...
-        if (newXPos !== xPos || newYPos !== yPos) {
-          const tweenDuration = Math.max(Math.abs(newXPos - xPos), Math.abs(newYPos - yPos)) * TWEEN_SPEED;
-          promises.push(
-            tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration),
-          );
-          this.grid[this.getGridIndex(newXPos, newYPos)] = tile;
-          this.grid[this.getGridIndex(xPos, yPos)] = null;
-          somethingMoved = true;
+        const res = this.calculateMove(tile, xPos, yPos, dx, dy);
+        if (res) {
+          promises.push(res);
         }
       }
     }
 
-    return Promise.all(promises).then(() => somethingMoved);
+    return Promise.all(promises).then(() => promises.length > 0);
+  }
+
+  moveCell(xPos: integer, yPos: integer, newXPos: integer, newYPos: integer) : Promise<void> {
+    const tile = this.grid[this.getGridIndex(xPos, yPos)];
+    const otherTile = this.grid[this.getGridIndex(newXPos, newYPos)];
+
+    if (otherTile) {
+      tile.markUpgrading();
+      otherTile.markUpgrading();
+      tile.depth = 3;
+      otherTile.depth = 2;
+      this.score += tile.getValue();
+    }
+
+    const tweenDuration = Math.max(Math.abs(newXPos - xPos), Math.abs(newYPos - yPos)) * TWEEN_SPEED;
+    const promise = tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration, otherTile);
+    this.grid[this.getGridIndex(newXPos, newYPos)] = tile;
+    this.grid[this.getGridIndex(xPos, yPos)] = null;
+
+    return promise;
+  }
+
+  calculateMove(tile : Tile, xPos : integer, yPos : integer, dx: integer, dy: integer) : Promise<void> {
+    // Find how far we can move in our direction until either we're outside the bounds of our game area
+    // or we're hitting another time
+    let newXPos: integer = xPos + Math.sign(dx);
+    let newYPos: integer = yPos + Math.sign(dy);
+    while (this.withinBounds(newXPos, newYPos) && !this.grid[this.getGridIndex(newXPos, newYPos)]) {
+      newXPos += Math.sign(dx);
+      newYPos += Math.sign(dy);
+    }
+
+    // If we hit another tile - see if we can upgrade
+    if (this.withinBounds(newXPos, newYPos)) {
+      const otherTile = this.grid[this.getGridIndex(newXPos, newYPos)];
+      if (otherTile.getValue() === tile.getValue() && otherTile.canUpgrade() && tile.canUpgrade()) {
+        return this.moveCell(xPos, yPos, newXPos, newYPos);
+      }
+    }
+
+    // We couldn't upgrade or we're hitting an edge
+    newXPos -= Math.sign(dx);
+    newYPos -= Math.sign(dy);
+
+    // If we actually moved anywhere...
+    if (newXPos !== xPos || newYPos !== yPos) {
+      return this.moveCell(xPos, yPos, newXPos, newYPos);
+    }
+
+    return null;
   }
 
   getCellPosition(p: integer): integer {
