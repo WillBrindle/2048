@@ -1,4 +1,4 @@
-import { FONT, TILE_SIZE, CELL_COLOURS } from './style';
+import { FONT, TILE_SIZE, CELL_COLOURS, PRIMARY_COLOUR, SECONDARY_COLOUR } from './style';
 
 export default class Tile extends Phaser.GameObjects.Container {
   private value: integer;
@@ -14,7 +14,7 @@ export default class Tile extends Phaser.GameObjects.Container {
       fontSize: '32px',
       fontFamily: FONT,
       fontStyle: 'bold',
-      color: '#786e66',
+      color: `#${PRIMARY_COLOUR.toString(16)}`,
     };
 
     this.rect = new Phaser.GameObjects.Rectangle(scene, TILE_SIZE / 2, TILE_SIZE / 2, TILE_SIZE, TILE_SIZE, this.getColour());
@@ -62,7 +62,7 @@ export default class Tile extends Phaser.GameObjects.Container {
   upgrade(): void {
     this.value *= 2;
     this.text.text = `${this.value}`;
-    this.text.setColor(this.value <= 4 ? '#786e66' : '#f7f4f2');
+    this.text.setColor(this.value <= 4 ? `#${PRIMARY_COLOUR.toString(16)}` : `#${SECONDARY_COLOUR.toString(16)}`);
     this.text.setPosition((TILE_SIZE - this.text.displayWidth) / 2, (TILE_SIZE - this.text.displayHeight) / 2);
     this.rect.fillColor = this.getColour();
     this.upgrading = false;

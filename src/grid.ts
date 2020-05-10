@@ -1,10 +1,7 @@
 import Tile from './tile';
-import { TILE_PADDING, TILE_SIZE, TWEEN_SPEED } from './style';
+import { BACKGROUND_COLOUR, CELL_COLOUR, TILE_PADDING, TILE_SIZE, TWEEN_SPEED } from './style';
 
 export default class Grid extends Phaser.GameObjects.Container {
-  static CELL_COLOUR: integer = 0xcbc2b3;
-  static BACKGROUND_COLOUR: integer = 0xbeaea1;
-
   private grid: Tile[];
   private size: integer;
   private displaySize: integer;
@@ -19,7 +16,7 @@ export default class Grid extends Phaser.GameObjects.Container {
 
     // Background
     this.displaySize = TILE_PADDING + (TILE_SIZE + TILE_PADDING) * size;
-    const background = new Phaser.GameObjects.Rectangle(this.scene, this.displaySize / 2, this.displaySize / 2, this.displaySize, this.displaySize, Grid.BACKGROUND_COLOUR);
+    const background = new Phaser.GameObjects.Rectangle(this.scene, this.displaySize / 2, this.displaySize / 2, this.displaySize, this.displaySize, BACKGROUND_COLOUR);
     this.add(background);
 
     for (let i: integer = 0; i < size * size; i += 1) {
@@ -29,7 +26,7 @@ export default class Grid extends Phaser.GameObjects.Container {
         this.getCellPosition(Math.floor(i / this.size)) + TILE_SIZE / 2,
         TILE_SIZE,
         TILE_SIZE,
-        Grid.CELL_COLOUR,
+        CELL_COLOUR,
       );
 
       this.add(cell);

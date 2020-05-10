@@ -2,7 +2,7 @@ import 'phaser';
 import Button from './button';
 import Grid from './grid';
 import ScoreBox from './scorebox';
-import { FONT } from './style';
+import { FONT, PRIMARY_COLOUR, SECONDARY_COLOUR } from './style';
 
 export default class TwentyFourtyEight extends Phaser.Scene {
   private grid: Grid;
@@ -31,14 +31,14 @@ export default class TwentyFourtyEight extends Phaser.Scene {
     this.grid.x = margin;
     this.grid.y = 200;
 
-    const title = new Phaser.GameObjects.Text(this, margin, 25, '2048', { fontSize: '64px', fontFamily: FONT, fontStyle: 'bold', color: '#786e66' });
+    const title = new Phaser.GameObjects.Text(this, margin, 25, '2048', { fontSize: '64px', fontFamily: FONT, fontStyle: 'bold', color: `#${PRIMARY_COLOUR.toString(16)}` });
     this.add.existing(title);
 
     // Hacky combination of normal and bold text; if we had to do anything more complicated then
     // this should either be refactored or use a plugin.
-    const description1 = new Phaser.GameObjects.Text(this, margin, 108, 'Join the numbers and get to the ', { fontSize: '16px', fontFamily: FONT, color: '#786e66' });
+    const description1 = new Phaser.GameObjects.Text(this, margin, 108, 'Join the numbers and get to the ', { fontSize: '16px', fontFamily: FONT, color: `#${PRIMARY_COLOUR.toString(16)}`  });
     this.add.existing(description1);
-    const description2 = new Phaser.GameObjects.Text(this, margin + description1.displayWidth, 108, '2048 tile!', { fontSize: '16px', fontStyle: 'bold', fontFamily: FONT, color: '#786e66' });
+    const description2 = new Phaser.GameObjects.Text(this, margin + description1.displayWidth, 108, '2048 tile!', { fontSize: '16px', fontStyle: 'bold', fontFamily: FONT, color: `#${PRIMARY_COLOUR.toString(16)}` });
     this.add.existing(description2);
 
     this.scorebox = new ScoreBox(this, 'SCORE', 120, 60);
@@ -100,7 +100,7 @@ export default class TwentyFourtyEight extends Phaser.Scene {
 
 const config = {
   type: Phaser.AUTO,
-  backgroundColor: '#fbf8f1',
+  backgroundColor: `#${SECONDARY_COLOUR.toString(16)}`,
   width: 600,
   height: 800,
   scene: TwentyFourtyEight,
