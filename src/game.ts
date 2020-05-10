@@ -1,7 +1,7 @@
 import 'phaser';
 
 // TODO: where to store this?
-const TILE_SIZE : integer = 75;
+const TILE_SIZE : integer = 85;
 const TILE_PADDING : integer = 5;
 const TWEEN_SPEED : integer = 100;
 
@@ -18,7 +18,7 @@ const COLOURS = {
     1024: 0xeac256,
     2048: 0xe8bd4d,
 };
-const FONT = 'Georgia, "Goudy Bookletter 1911", Times, serif';
+const FONT = '"Open Sans Condensed", sans-serif';
 
 class Tile extends Phaser.GameObjects.Container {
     private value : integer;
@@ -30,8 +30,15 @@ class Tile extends Phaser.GameObjects.Container {
         super(scene, 0, 0);
         this.value = value;
 
+        const defaultStyle = {
+            fontSize: '32px',
+            fontFamily: FONT,
+            fontWeight: 900,
+            color: '#786e66'
+        };
+
         this.rect = new Phaser.GameObjects.Rectangle(scene, TILE_SIZE / 2, TILE_SIZE / 2, TILE_SIZE, TILE_SIZE, this.getColour());
-        this.text = new Phaser.GameObjects.Text(scene, 0, 0, `${value}`, { fontSize: '32px', fontFamily: FONT, color: "#786e66" });
+        this.text = new Phaser.GameObjects.Text(scene, 0, 0, `${value}`, defaultStyle);
         this.text.setPosition((TILE_SIZE - this.text.displayWidth) / 2, (TILE_SIZE - this.text.displayHeight) / 2);
 
         this.add(this.rect);
@@ -56,23 +63,24 @@ class Tile extends Phaser.GameObjects.Container {
         });
     }
 
-    getColour() {
+    getColour() : integer {
+        // TODO: fall back to dark grey/almost black if > 2048 for infinite playability
         return COLOURS[this.value];
     }
 
-    getValue() {
+    getValue() : integer{
         return this.value;
     }
 
-    markUpgrading() {
+    markUpgrading() : void {
         this.upgrading = true;
     }
 
-    canUpgrade() {
+    canUpgrade() : boolean {
         return !this.upgrading;
     }
 
-    upgrade() {
+    upgrade() : void {
         this.value *= 2;
         this.text.text = `${this.value}`;
         this.text.setColor(this.value <= 4 ? "#786e66" : "#f7f4f2");
@@ -82,15 +90,22 @@ class Tile extends Phaser.GameObjects.Container {
     }
 }
 
-class Grid {
+class Grid extends Phaser.GameObjects.Container {
+    static CELL_COLOUR : integer = 0xcbc2b3;
+    static BACKGROUND_COLOUR : integer = 0xbeaea1;
+
     private grid : Array<Tile>;
-    private scene : Phaser.Scene;
     private size : integer;
 
     constructor(scene : Phaser.Scene, size : integer) {
+        super(scene, 0, 0);
         this.grid = new Array<Tile>(size * size);
-        this.scene = scene;
         this.size = size;
+
+        // Background
+        const bgSize = (TILE_SIZE + TILE_PADDING) * size;
+        const background = new Phaser.GameObjects.Rectangle(this.scene, bgSize / 2, bgSize / 2, bgSize, bgSize, Grid.BACKGROUND_COLOUR);
+        this.add(background);
     }
 
     addRandomTile() {
@@ -104,8 +119,8 @@ class Grid {
         const newPosition : integer = emptyPositions[Math.floor(Math.random() * emptyPositions.length)];
         
         const tile : Tile = new Tile(this.scene, 2);
-        tile.setPosition((newPosition % this.size) * (TILE_SIZE + TILE_PADDING), Math.floor(newPosition / this.size) * (TILE_SIZE + TILE_PADDING));
-        this.scene.add.existing(tile);
+        tile.setPosition(this.getCellPosition(newPosition % this.size), this.getCellPosition(Math.floor(newPosition / this.size)));
+        this.add(tile);
         this.grid[newPosition] = tile;
     }
 
@@ -120,7 +135,7 @@ class Grid {
                 // If we're moving down start from bottom; otherwise start from top
                 const yPos : integer = dy > 0 ? (this.size - 1 - j) : j;
 
-                const tile : Tile = this.grid[this.getIndex(xPos, yPos)];
+                const tile : Tile = this.grid[this.getGridIndex(xPos, yPos)];
                 // No tile to move so move on
                 if (!tile) {
                     continue;
@@ -130,14 +145,14 @@ class Grid {
                 // or we're hitting another time
                 let newXPos : integer = xPos + Math.sign(dx);
                 let newYPos : integer = yPos + Math.sign(dy);
-                while (this.withinBounds(newXPos, newYPos) && !this.grid[this.getIndex(newXPos, newYPos)]) {
+                while (this.withinBounds(newXPos, newYPos) && !this.grid[this.getGridIndex(newXPos, newYPos)]) {
                     newXPos += Math.sign(dx);
                     newYPos += Math.sign(dy);
                 }
 
                 // If we hit another tile - see if we can upgrade
                 if (this.withinBounds(newXPos, newYPos)) {
-                    const otherTile = this.grid[this.getIndex(newXPos, newYPos)];
+                    const otherTile = this.grid[this.getGridIndex(newXPos, newYPos)];
                     if (otherTile.getValue() === tile.getValue() && otherTile.canUpgrade() && tile.canUpgrade()) {
                         tile.markUpgrading();
                         otherTile.markUpgrading();
@@ -146,10 +161,10 @@ class Grid {
                         // Merge the 2
                         const tweenDuration = Math.max(Math.abs(newXPos - xPos), Math.abs(newYPos - yPos)) * TWEEN_SPEED;
                         promises.push(
-                            tile.tweenTo(newXPos * (TILE_SIZE + TILE_PADDING), newYPos * (TILE_SIZE + TILE_PADDING), tweenDuration, otherTile)
+                            tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration, otherTile)
                         );
-                        this.grid[this.getIndex(newXPos, newYPos)] = tile;
-                        this.grid[this.getIndex(xPos, yPos)] = null;
+                        this.grid[this.getGridIndex(newXPos, newYPos)] = tile;
+                        this.grid[this.getGridIndex(xPos, yPos)] = null;
                         somethingMoved = true;
                         continue;
                     }
@@ -163,10 +178,10 @@ class Grid {
                 if (newXPos !== xPos || newYPos !== yPos) {
                     const tweenDuration = Math.max(Math.abs(newXPos - xPos), Math.abs(newYPos - yPos)) * TWEEN_SPEED;
                     promises.push(
-                        tile.tweenTo(newXPos * (TILE_SIZE + TILE_PADDING), newYPos * (TILE_SIZE + TILE_PADDING), tweenDuration)
+                        tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration)
                     );
-                    this.grid[this.getIndex(newXPos, newYPos)] = tile;
-                    this.grid[this.getIndex(xPos, yPos)] = null;
+                    this.grid[this.getGridIndex(newXPos, newYPos)] = tile;
+                    this.grid[this.getGridIndex(xPos, yPos)] = null;
                     somethingMoved = true;
                 }
             }
@@ -175,7 +190,11 @@ class Grid {
         return Promise.all(promises).then(() => somethingMoved);
     }
 
-    getIndex(x, y) {
+    getCellPosition(p : integer) : integer{
+        return TILE_PADDING + p * (TILE_SIZE + TILE_PADDING);
+    }
+
+    getGridIndex(x : integer, y : integer) : integer {
         return x + this.size * y;
     }
 
@@ -184,21 +203,23 @@ class Grid {
     }
 }
 
-export default class Demo extends Phaser.Scene
+export default class TwentyFourtyEight extends Phaser.Scene
 {
     private grid : Grid;
     private moving : boolean = false;
 
     constructor ()
     {
-        super('demo');
-        this.grid = new Grid(this, 4);
+        super('2048');
     }
 
     preload () {
     }
 
     create () {
+        this.grid = new Grid(this, 4);
+        this.add.existing(this.grid);
+
         this.grid.addRandomTile();
         this.input.keyboard.on("keydown", this.onKeyPress, this);
     }
@@ -236,9 +257,9 @@ export default class Demo extends Phaser.Scene
 const config = {
     type: Phaser.AUTO,
     backgroundColor: '#125555',
-    width: 800,
-    height: 600,
-    scene: Demo
+    width: 600,
+    height: 800,
+    scene: TwentyFourtyEight
 };
 
 const game = new Phaser.Game(config);
