@@ -1,8 +1,8 @@
 import 'phaser';
 
 // TODO: where to store this?
-const TILE_SIZE : integer = 85;
-const TILE_PADDING : integer = 5;
+const TILE_SIZE : integer = 100;
+const TILE_PADDING : integer = 10;
 const TWEEN_SPEED : integer = 100;
 
 const COLOURS = {
@@ -96,6 +96,7 @@ class Grid extends Phaser.GameObjects.Container {
 
     private grid : Array<Tile>;
     private size : integer;
+    private displaySize : integer;
 
     constructor(scene : Phaser.Scene, size : integer) {
         super(scene, 0, 0);
@@ -103,9 +104,22 @@ class Grid extends Phaser.GameObjects.Container {
         this.size = size;
 
         // Background
-        const bgSize = (TILE_SIZE + TILE_PADDING) * size;
-        const background = new Phaser.GameObjects.Rectangle(this.scene, bgSize / 2, bgSize / 2, bgSize, bgSize, Grid.BACKGROUND_COLOUR);
+        this.displaySize = TILE_PADDING + (TILE_SIZE + TILE_PADDING) * size;
+        const background = new Phaser.GameObjects.Rectangle(this.scene, this.displaySize / 2, this.displaySize / 2, this.displaySize, this.displaySize, Grid.BACKGROUND_COLOUR);
         this.add(background);
+
+        for (let i : integer = 0; i < size * size; i++) {
+            const cell = new Phaser.GameObjects.Rectangle(
+                this.scene,
+                this.getCellPosition(i % this.size) + TILE_SIZE / 2,
+                this.getCellPosition(Math.floor(i / this.size)) + TILE_SIZE / 2,
+                TILE_SIZE,
+                TILE_SIZE,
+                Grid.CELL_COLOUR
+            );
+
+            this.add(cell);
+        }
     }
 
     addRandomTile() {
@@ -194,6 +208,10 @@ class Grid extends Phaser.GameObjects.Container {
         return TILE_PADDING + p * (TILE_SIZE + TILE_PADDING);
     }
 
+    getDisplaySize() : integer {
+        return this.displaySize;
+    }
+
     getGridIndex(x : integer, y : integer) : integer {
         return x + this.size * y;
     }
@@ -217,8 +235,16 @@ export default class TwentyFourtyEight extends Phaser.Scene
     }
 
     create () {
+        const title = new Phaser.GameObjects.Text(this, 85, 25, '2048', { fontSize: '85px', fontFamily: FONT, color: '#786e66' });
+        this.add.existing(title);
+
+        const { width } = this.sys.game.canvas;
+
         this.grid = new Grid(this, 4);
         this.add.existing(this.grid);
+
+        this.grid.x = (width - this.grid.getDisplaySize()) / 2;
+        this.grid.y = 200;
 
         this.grid.addRandomTile();
         this.input.keyboard.on("keydown", this.onKeyPress, this);
@@ -256,7 +282,7 @@ export default class TwentyFourtyEight extends Phaser.Scene
 
 const config = {
     type: Phaser.AUTO,
-    backgroundColor: '#125555',
+    backgroundColor: '#fbf8f1',
     width: 600,
     height: 800,
     scene: TwentyFourtyEight
