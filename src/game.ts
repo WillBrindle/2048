@@ -34,7 +34,7 @@ class Tile extends Phaser.GameObjects.Container {
       fontSize: '32px',
       fontFamily: FONT,
       fontStyle: 'bold',
-      color: '#786e66'
+      color: '#786e66',
     };
 
     this.rect = new Phaser.GameObjects.Rectangle(scene, TILE_SIZE / 2, TILE_SIZE / 2, TILE_SIZE, TILE_SIZE, this.getColour());
@@ -48,17 +48,17 @@ class Tile extends Phaser.GameObjects.Container {
   tweenTo(x: integer, y: integer, duration: integer, replace: Tile = null): Promise<void> {
     return new Promise((resolve) => {
       this.scene.tweens.add({
-        targets: [this],
         x,
         y,
         duration,
+        targets: [this],
         onComplete: () => {
           if (replace) {
             this.upgrade();
             replace.destroy();
           }
           resolve();
-        }
+        },
       });
     });
   }
@@ -83,7 +83,7 @@ class Tile extends Phaser.GameObjects.Container {
   upgrade(): void {
     this.value *= 2;
     this.text.text = `${this.value}`;
-    this.text.setColor(this.value <= 4 ? "#786e66" : "#f7f4f2");
+    this.text.setColor(this.value <= 4 ? '#786e66' : '#f7f4f2');
     this.text.setPosition((TILE_SIZE - this.text.displayWidth) / 2, (TILE_SIZE - this.text.displayHeight) / 2);
     this.rect.fillColor = this.getColour();
     this.upgrading = false;
@@ -94,7 +94,7 @@ class Grid extends Phaser.GameObjects.Container {
   static CELL_COLOUR: integer = 0xcbc2b3;
   static BACKGROUND_COLOUR: integer = 0xbeaea1;
 
-  private grid: Array<Tile>;
+  private grid: Tile[];
   private size: integer;
   private displaySize: integer;
 
@@ -104,21 +104,21 @@ class Grid extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, size: integer) {
     super(scene, 0, 0);
     this.size = size;
-    this.grid = new Array<Tile>(size * size);
+    this.grid = new Tile[size * size];
 
     // Background
     this.displaySize = TILE_PADDING + (TILE_SIZE + TILE_PADDING) * size;
     const background = new Phaser.GameObjects.Rectangle(this.scene, this.displaySize / 2, this.displaySize / 2, this.displaySize, this.displaySize, Grid.BACKGROUND_COLOUR);
     this.add(background);
 
-    for (let i: integer = 0; i < size * size; i++) {
+    for (let i: integer = 0; i < size * size; i += 1) {
       const cell = new Phaser.GameObjects.Rectangle(
         this.scene,
         this.getCellPosition(i % this.size) + TILE_SIZE / 2,
         this.getCellPosition(Math.floor(i / this.size)) + TILE_SIZE / 2,
         TILE_SIZE,
         TILE_SIZE,
-        Grid.CELL_COLOUR
+        Grid.CELL_COLOUR,
       );
 
       this.add(cell);
@@ -126,8 +126,8 @@ class Grid extends Phaser.GameObjects.Container {
   }
 
   addRandomTile() {
-    const emptyPositions: Array<integer> = new Array();
-    for (let i: integer = 0; i < this.grid.length; i++) {
+    const emptyPositions: integer[] = [];
+    for (let i: integer = 0; i < this.grid.length; i += 1) {
       if (!this.grid[i]) {
         emptyPositions.push(i);
       }
@@ -142,11 +142,11 @@ class Grid extends Phaser.GameObjects.Container {
   }
 
   move(dx: integer, dy: integer): Promise<boolean> {
-    const promises: Array<Promise<void>> = [];
+    const promises: Promise<void>[] = [];
     let somethingMoved = false;
 
-    for (let i: integer = 0; i < this.size; i++) {
-      for (let j: integer = 0; j < this.size; j++) {
+    for (let i: integer = 0; i < this.size; i += 1) {
+      for (let j: integer = 0; j < this.size; j += 1) {
         // If we're moving right start from right; otherwise start from left
         const xPos: integer = dx > 0 ? (this.size - 1 - i) : i;
         // If we're moving down start from bottom; otherwise start from top
@@ -179,7 +179,7 @@ class Grid extends Phaser.GameObjects.Container {
             // Merge the 2
             const tweenDuration = Math.max(Math.abs(newXPos - xPos), Math.abs(newYPos - yPos)) * TWEEN_SPEED;
             promises.push(
-              tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration, otherTile)
+              tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration, otherTile),
             );
             this.grid[this.getGridIndex(newXPos, newYPos)] = tile;
             this.grid[this.getGridIndex(xPos, yPos)] = null;
@@ -196,7 +196,7 @@ class Grid extends Phaser.GameObjects.Container {
         if (newXPos !== xPos || newYPos !== yPos) {
           const tweenDuration = Math.max(Math.abs(newXPos - xPos), Math.abs(newYPos - yPos)) * TWEEN_SPEED;
           promises.push(
-            tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration)
+            tile.tweenTo(this.getCellPosition(newXPos), this.getCellPosition(newYPos), tweenDuration),
           );
           this.grid[this.getGridIndex(newXPos, newYPos)] = tile;
           this.grid[this.getGridIndex(xPos, yPos)] = null;
@@ -229,7 +229,7 @@ class Grid extends Phaser.GameObjects.Container {
       tile.destroy();
     });
 
-    this.grid = new Array<Tile>(this.size * this.size);
+    this.grid = new Tile[this.size * this.size];
     this.score = 0;
     this.addRandomTile();
   }
@@ -295,7 +295,7 @@ export default class TwentyFourtyEight extends Phaser.Scene {
   }
 
   preload() {
-    this.highscore = localStorage.getItem('highscore') ? Number.parseInt(localStorage.getItem('highscore')) : 0;
+    this.highscore = localStorage.getItem('highscore') ? Number.parseInt(localStorage.getItem('highscore'), 10) : 0;
   }
 
   create() {
@@ -336,22 +336,22 @@ export default class TwentyFourtyEight extends Phaser.Scene {
     this.add.existing(newGameButton);
 
     this.grid.addRandomTile();
-    this.input.keyboard.on("keydown", this.onKeyPress, this);
+    this.input.keyboard.on('keydown', this.onKeyPress, this);
   }
 
   onKeyPress(e) {
     if (!this.moving) {
       switch (e.code) {
-        case "ArrowUp":
+        case 'ArrowUp':
           this.gridMove(0, -1);
           break;
-        case "ArrowDown":
+        case 'ArrowDown':
           this.gridMove(0, 1);
           break;
-        case "ArrowLeft":
+        case 'ArrowLeft':
           this.gridMove(-1, 0);
           break;
-        case "ArrowRight":
+        case 'ArrowRight':
           this.gridMove(1, 0);
           break;
       }
@@ -381,7 +381,7 @@ const config = {
   backgroundColor: '#fbf8f1',
   width: 600,
   height: 800,
-  scene: TwentyFourtyEight
+  scene: TwentyFourtyEight,
 };
 
 const game = new Phaser.Game(config);
