@@ -1,4 +1,4 @@
-import { FONT, TILE_SIZE, CELL_COLOURS, PRIMARY_COLOUR, SECONDARY_COLOUR } from './style';
+import { FONT, TILE_SIZE, CELL_COLOURS, PRIMARY_COLOUR, SECONDARY_COLOUR } from './Styles';
 
 export default class Tile extends Phaser.GameObjects.Container {
   private value: integer;

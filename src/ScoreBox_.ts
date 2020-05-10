@@ -1,4 +1,4 @@
-import { BACKGROUND_COLOUR, FONT, SECONDARY_COLOUR, TERTIARY_COLOUR } from './style';
+import { BACKGROUND_COLOUR, FONT, SECONDARY_COLOUR, TERTIARY_COLOUR } from './Styles';
 
 export default class ScoreBox extends Phaser.GameObjects.Container {
   private valueLabel: Phaser.GameObjects.Text;

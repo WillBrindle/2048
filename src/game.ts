@@ -1,8 +1,8 @@
 import 'phaser';
-import Button from './button';
-import Grid from './grid';
-import ScoreBox from './scorebox';
-import { FONT, PRIMARY_COLOUR, SECONDARY_COLOUR } from './style';
+import Button from './Button';
+import Grid from './Grid';
+import ScoreBox from './ScoreBox';
+import { FONT, PRIMARY_COLOUR, SECONDARY_COLOUR } from './Styles';
 
 export default class TwentyFourtyEight extends Phaser.Scene {
   private grid: Grid;

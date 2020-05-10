@@ -1,4 +1,4 @@
-import { FONT, PRIMARY_COLOUR, TERTIARY_COLOUR } from './style';
+import { FONT, PRIMARY_COLOUR, TERTIARY_COLOUR } from './Styles';
 
 export default class Button extends Phaser.GameObjects.Container {
   constructor(scene, label, width, height, callback) {

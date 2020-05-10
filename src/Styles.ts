@@ -20,7 +20,6 @@ export const CELL_COLOURS = {
   2048: 0xe8bd4d,
 };
 
-
 export const PRIMARY_COLOUR:integer = 0x786e66;
 export const SECONDARY_COLOUR:integer = 0xfbf8f1;
 export const TERTIARY_COLOUR:integer = 0xe3d9cf;

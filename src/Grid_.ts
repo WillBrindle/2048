@@ -1,5 +1,5 @@
-import Tile from './tile';
-import { BACKGROUND_COLOUR, CELL_COLOUR, TILE_PADDING, TILE_SIZE, TWEEN_SPEED } from './style';
+import Tile from './Tile';
+import { BACKGROUND_COLOUR, CELL_COLOUR, TILE_PADDING, TILE_SIZE, TWEEN_SPEED } from './Styles';
 
 export default class Grid extends Phaser.GameObjects.Container {
   private grid: Tile[];
