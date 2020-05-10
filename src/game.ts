@@ -104,7 +104,7 @@ class Grid extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, size: integer) {
     super(scene, 0, 0);
     this.size = size;
-    this.grid = new Tile[size * size];
+    this.grid = new Array<Tile>(size * size);
 
     // Background
     this.displaySize = TILE_PADDING + (TILE_SIZE + TILE_PADDING) * size;
@@ -229,7 +229,7 @@ class Grid extends Phaser.GameObjects.Container {
       tile.destroy();
     });
 
-    this.grid = new Tile[this.size * this.size];
+    this.grid = new Array<Tile>(this.size * this.size);
     this.score = 0;
     this.addRandomTile();
   }
